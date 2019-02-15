@@ -1,6 +1,6 @@
 #include <Bounce2.h>
 
-const int UNIT = 300;
+const int UNIT = 100;
 
 enum separatorType
 {
@@ -9,83 +9,157 @@ enum separatorType
   line=UNIT*3,
   part_letter=UNIT*1,
   letter=UNIT*3,
+  pause=UNIT*12,
   error=0,
 };
 
-const int button_pin = 11;     // the number of the pushbutton pin
+// pins
+const int button_pin = 11;     // the number of the morse key input
 const int led_pin =  13;      // the number of the LED pin
 
-// variables will change:
-Bounce morse_key = Bounce(button_pin, 10);
-separatorType separator = space;
-int button_state = 0;         // variable for reading the pushbutton status
-unsigned long last_time = 0;
-unsigned long gap_time = 0;
+// global variables
+unsigned long DOWN_START_TIME = 0; // saves the start time when the key is down
+unsigned long DOWN_TIME = 0; // saves the calculated time of the down time
+unsigned long UP_START_TIME = 0; // saves the start time when the key is up
+unsigned long UP_TIME = 0; // saves the calculated time of the up key
+String CURRENT_CHAR = ""; // saves the dots and lines of the current written char
+bool WORD_END = true; // False - space hasn't been written yet. True - space was written
+bool IS_DOWN = false; // A bool to check if the key is down, used to check if the key is up enough time to write the buffer or space
+
+Bounce morse_key = Bounce(button_pin, 10); // The object of the morse key. Fixes bounce issues of metal first contact
+
 
 void setup() {
   // initialize the LED pin as an output:
   pinMode(led_pin, OUTPUT);
   // initialize the pushbutton pin as an input:
   pinMode(button_pin, INPUT);
+  
   Serial.begin(9600);
   Serial.println("Starting...");
-  last_time = millis();
+
+  // Set the start of the up time to the beginning of the run
+  UP_START_TIME = millis();
 }
 
 void loop() {
+  // Call update to check if chars should be written
+  update();
+
+  // if there is change of state (up or down)
   if (morse_key.update())
   {
     if (morse_key.risingEdge())
     {
-      key_up();
+      // morse key is now down. Call key down function
+      key_down();
     }
     else if (morse_key.fallingEdge())
     {
-      key_down();
+      // morse key is now up. Call key up function
+      key_up();
     }
+  }
+}
+
+void key_up()
+{
+  UP_START_TIME = millis();
+  DOWN_TIME = UP_START_TIME - DOWN_START_TIME;
+  IS_DOWN = false;
+  //Serial.print("Down time: ");
+  //Serial.println(DOWN_TIME);
+  
+  // turn LED off:
+  digitalWrite(led_pin, LOW);
+  
+  add_input(DOWN_TIME);
+}
+
+void add_input(unsigned long down_time)
+{
+  if (down_time >= line)
+  {
+    //Serial.print("LINE ");
+    CURRENT_CHAR += "-";
+  }
+  //else if (down_time >= dot)
+  else
+  {
+    //Serial.print("DOT ");
+    CURRENT_CHAR += ".";
   }
 }
 
 void key_down()
 {
-  Serial.print("Down time: ");
-  Serial.print(millis() - last_time);
-  Serial.println();
-  last_time = millis();
+  DOWN_START_TIME = millis();
+  IS_DOWN = true;
   
+  //Serial.print("Up time: ");
+  //Serial.println(UP_TIME);
+
   // turn LED on:
-  digitalWrite(led_pin, LOW);
-
-  separator = check_separation();
-  Serial.println(separator);
-}
-
-separatorType check_separation()
-{
-  gap_time = millis() - last_time;
-  Serial.println(space);
-  if (gap_time >= space)
-  {
-    return space;
-  }
-  if (gap_time >= letter)
-  {
-    return letter;
-  }
-  if (gap_time >= part_letter)
-  {
-    return part_letter;
-  }
-  return error;
-}
-
-void key_up()
-{
-  Serial.print("Up time: ");
-  Serial.print(millis() - last_time);
-  Serial.println();
-  last_time = millis();
-
-  // turn LED off:
   digitalWrite(led_pin, HIGH);
+
+  
+}
+
+void update()
+{
+  /* This function writes the correct chars if the morse key is "up" long enough
+   * The morse key can be is "up" state for a long time, like when the user finishes to type.
+   * That's why we should call a different function to check if something needs to be written,
+   * and to not wait of the user to change the state to "down".
+   */
+  if (!IS_DOWN)
+  {
+    UP_TIME = millis() - UP_START_TIME;
+    calculate_separator(UP_TIME);
+  }
+}
+
+void calculate_separator(unsigned long up_time)
+{
+  if (CURRENT_CHAR.length() != 0)
+  {
+    if (up_time >= letter)
+    {
+      calculate_letter();
+      //Serial.print(" CHAR ");
+      
+      CURRENT_CHAR = "";
+      WORD_END = false;
+    }
+  }
+  else if (!WORD_END && up_time >= space)
+  {
+    write_letter(' ');
+    //Serial.print(" SPACE  ");
+    
+    WORD_END = true;
+  }
+}
+
+void write_letter(char to_write)
+{
+  Serial.print(to_write);
+}
+
+void calculate_letter()
+{
+  char to_write = 0;
+  if (CURRENT_CHAR.equals("..."))
+  {
+    to_write = 's';
+  }
+  else if (CURRENT_CHAR.equals("---"))
+  {
+    to_write = 'o';
+  }
+  else
+  {
+    Serial.print(CURRENT_CHAR);
+  }
+  write_letter(to_write);
 }
