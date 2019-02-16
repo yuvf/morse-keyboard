@@ -1,3 +1,15 @@
+/* File: morse_main.ino
+ * Author: Yuval Fisher
+ * 
+ * Morse key as a keyboard, for typing in English and in Hebrew
+ */
+
+/*
+ * Details:
+ * Morse key connected in pin 11 as a button
+ * Made up sequences - "......" for Enter, "......." for Backspace, "........" for changing language
+ */
+
 #include <HashMap.h>
 #include <Bounce2.h>
 #include <Keyboard.h>
@@ -16,6 +28,7 @@ enum separatorType
   error = 0,
 };
 
+// This struct contains a singal key and it's symbols. An array of structs should be created of every langauge
 typedef struct
 {
   String symbols;
@@ -38,11 +51,25 @@ bool IS_DOWN = false; // A bool to check if the key is down, used to check if th
 Bounce morse_key = Bounce(button_pin, 10); // The object of the morse key. Fixes bounce issues of metal first contact
 
 // Create an array of keys mapped to symbols
-Key KEYS[] = {{".-", 'a'}, {"-...", 'b'}, {"-.-.", 'c'}, {"-..", 'd'}, {".", 'e'}, {"..-.", 'f'}, {"--.", 'g'}, {"....", 'h'}, {"..", 'i'},
+Key ENG_KEYS[] = {{".-", 'a'}, {"-...", 'b'}, {"-.-.", 'c'}, {"-..", 'd'}, {".", 'e'}, {"..-.", 'f'}, {"--.", 'g'}, {"....", 'h'}, {"..", 'i'},
               {".---", 'j'}, {"-.-", 'k'}, {".-..", 'l'}, {"--", 'm'}, {"-.", 'n'}, {"---", 'o'}, {".--.", 'p'}, {"--.-", 'q'}, {".-.", 'r'},
               {"...", 's'}, {"-", 't'}, {"..-", 'u'}, {"...-", 'v'}, {".--", 'w'}, {"-..-", 'x'}, {"-.--", 'y'}, {"--..", 'z'}, {".----", '1'},
-              {"..---", '2'}, {"...--", '3'}, {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'}, {"---..", '8'}, {"----.", '9'},
-              {"-----", '0'}, {"......", 10}, {".......", 8}};
+              {"..---", '2'}, {"...--", '3'}, {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'}, {"---..", '8'}, {"----.", '9'}, {"-----", '0'},
+              {"......", 10}, // Enter
+              {".......", 8},  // Backspace
+              };
+
+Key HEB_KEYS[] = {{".-", 't'}, {"-...", 'c'}, {"-.-.", 'x'}, {"-..", 's'}, {".", 'u'}, {"--.", 'd'}, {"....", 'j'}, {"..", 'h'},
+              {".---", 'g'}, {"-.-", 'f'}, {".-..", 'k'}, {"--", 'n'}, {"-.", 'b'}, {"---", 'v'}, {".--.", 'p'}, {"--.-", 'e'},
+              {".-.", 'r'}, {"...", 'a'}, {"-", ','}, {"..-", 'y'}, {".--", 'm'}, {"--..", 'z'}, {".----", '1'}, {"..---", '2'},
+              {"...--", '3'}, {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'}, {"---..", '8'}, {"----.", '9'}, {"-----", '0'},
+              {"......", 10}, // Enter
+              {".......", 8},  // Backspace
+              };
+
+String CHANGE_LANG = "........"; // For changing langauge
+Key * CURRENT_LANG = NULL;
+size_t CURRENT_LANG_SIZE = 0;
 
 
 void setup() {
@@ -59,6 +86,10 @@ void setup() {
 
   // Initialize the keyboard
   Keyboard.begin();
+
+  // Set current language
+  CURRENT_LANG = &HEB_KEYS[0];
+  CURRENT_LANG_SIZE = sizeof(HEB_KEYS);
 }
 
 void loop() {
@@ -164,13 +195,36 @@ void write_letter(char to_write)
   Keyboard.print(to_write);
 }
 
+void change_lang()
+{
+  if (CURRENT_LANG == &ENG_KEYS[0])
+  {
+    CURRENT_LANG = &HEB_KEYS[0];
+    CURRENT_LANG_SIZE = sizeof(HEB_KEYS);
+  }
+  else
+  {
+    CURRENT_LANG = &ENG_KEYS[0];
+    CURRENT_LANG_SIZE = sizeof(ENG_KEYS);
+  }
+  Keyboard.press(KEY_LEFT_SHIFT);
+  Keyboard.press(KEY_LEFT_ALT);
+  Keyboard.release(KEY_LEFT_SHIFT);
+  Keyboard.release(KEY_LEFT_ALT);
+}
+
 void calculate_letter()
 {
-  for (unsigned int i=0; i<(sizeof(KEYS)/sizeof(Key)); i++)
+  if (CURRENT_CHAR.equals(CHANGE_LANG))
   {
-    if (CURRENT_CHAR.equals(KEYS[i].symbols))
+    change_lang();
+    return;
+  }
+  for (unsigned int i=0; i<(CURRENT_LANG_SIZE/sizeof(Key)); i++)
+  {
+    if (CURRENT_CHAR.equals(CURRENT_LANG[i].symbols))
     {
-      write_letter(KEYS[i].key);
+      write_letter(CURRENT_LANG[i].key);
       return;
     }
   }
