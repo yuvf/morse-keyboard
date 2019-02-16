@@ -10,12 +10,13 @@
  * Made up sequences - "......" for Enter, "......." for Backspace, "........" for changing language
  */
 
-#include <HashMap.h>
 #include <Bounce2.h>
 #include <Keyboard.h>
 
 
-const int UNIT = 100;
+const char BACKSPACE = 8;
+const char ENTER = 10;
+const unsigned int UNIT = 70;
 
 enum separatorType
 {
@@ -34,6 +35,13 @@ typedef struct
   String symbols;
   char key;
 } Key;
+
+// This struct contains a letter in Hebrew, and the corresponding final letter
+typedef struct
+{
+  char key;
+  char final_key;
+} FinalKey;
 
 // pins
 const int button_pin = 11;     // the number of the morse key input
@@ -55,21 +63,24 @@ Key ENG_KEYS[] = {{".-", 'a'}, {"-...", 'b'}, {"-.-.", 'c'}, {"-..", 'd'}, {".",
               {".---", 'j'}, {"-.-", 'k'}, {".-..", 'l'}, {"--", 'm'}, {"-.", 'n'}, {"---", 'o'}, {".--.", 'p'}, {"--.-", 'q'}, {".-.", 'r'},
               {"...", 's'}, {"-", 't'}, {"..-", 'u'}, {"...-", 'v'}, {".--", 'w'}, {"-..-", 'x'}, {"-.--", 'y'}, {"--..", 'z'}, {".----", '1'},
               {"..---", '2'}, {"...--", '3'}, {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'}, {"---..", '8'}, {"----.", '9'}, {"-----", '0'},
-              {"......", 10}, // Enter
-              {".......", 8},  // Backspace
+              {"......", ENTER}, // Enter
+              {".......", BACKSPACE},  // Backspace
               };
 
 Key HEB_KEYS[] = {{".-", 't'}, {"-...", 'c'}, {"-.-.", 'x'}, {"-..", 's'}, {".", 'u'}, {"--.", 'd'}, {"....", 'j'}, {"..", 'h'},
               {".---", 'g'}, {"-.-", 'f'}, {".-..", 'k'}, {"--", 'n'}, {"-.", 'b'}, {"---", 'v'}, {".--.", 'p'}, {"--.-", 'e'},
               {".-.", 'r'}, {"...", 'a'}, {"-", ','}, {"..-", 'y'}, {".--", 'm'}, {"--..", 'z'}, {".----", '1'}, {"..---", '2'},
               {"...--", '3'}, {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'}, {"---..", '8'}, {"----.", '9'}, {"-----", '0'},
-              {"......", 10}, // Enter
-              {".......", 8},  // Backspace
+              {"......", ENTER}, // Enter
+              {".......", BACKSPACE},  // Backspace
               };
+
+FinalKey HEB_FINALS[] = {{'n', 'o'}, {'f', 'l'}, {'b', 'i'}, {'p', ';'}, {'m', '.'}};
 
 String CHANGE_LANG = "........"; // For changing langauge
 Key * CURRENT_LANG = NULL;
 size_t CURRENT_LANG_SIZE = 0;
+char LAST_CHAR;
 
 
 void setup() {
@@ -117,8 +128,6 @@ void key_up()
   UP_START_TIME = millis();
   DOWN_TIME = UP_START_TIME - DOWN_START_TIME;
   IS_DOWN = false;
-  //Serial.print("Down time: ");
-  //Serial.println(DOWN_TIME);
 
   // turn LED off:
   digitalWrite(led_pin, LOW);
@@ -130,13 +139,10 @@ void add_input(unsigned long down_time)
 {
   if (down_time >= line)
   {
-    //Serial.print("LINE ");
     CURRENT_CHAR += "-";
   }
-  //else if (down_time >= dot)
   else
   {
-    //Serial.print("DOT ");
     CURRENT_CHAR += ".";
   }
 }
@@ -145,9 +151,6 @@ void key_down()
 {
   DOWN_START_TIME = millis();
   IS_DOWN = true;
-
-  //Serial.print("Up time: ");
-  //Serial.println(UP_TIME);
 
   // turn LED on:
   digitalWrite(led_pin, HIGH);
@@ -169,6 +172,36 @@ void update()
   }
 }
 
+void write_letter(char to_write)
+{
+  Keyboard.print(to_write);
+}
+
+void replace_last_char(char new_char)
+{
+  write_letter(BACKSPACE);
+  write_letter(new_char);
+}
+
+void change_final_letter()
+/*
+ * This function checks if the last letter that was written was a Hebrew final letter
+ * If it is, it changes it to the corresponding final letter
+ */
+{
+  if (CURRENT_LANG == &HEB_KEYS[0])
+  {
+    for (unsigned int i = 0; i<sizeof(HEB_FINALS)/sizeof(HEB_FINALS[0]); i++)
+    {
+      if (LAST_CHAR == HEB_FINALS[i].key)
+      {
+        replace_last_char(HEB_FINALS[i].final_key);
+        return;
+      }
+    }
+  }
+}
+
 void calculate_separator(unsigned long up_time)
 {
   if (CURRENT_CHAR.length() != 0)
@@ -176,7 +209,6 @@ void calculate_separator(unsigned long up_time)
     if (up_time >= letter)
     {
       calculate_letter();
-      //Serial.print(" CHAR ");
 
       CURRENT_CHAR = "";
       WORD_END = false;
@@ -184,19 +216,20 @@ void calculate_separator(unsigned long up_time)
   }
   else if (!WORD_END && up_time >= space)
   {
+    change_final_letter();
     write_letter(' ');
 
     WORD_END = true;
   }
 }
 
-void write_letter(char to_write)
-{
-  Keyboard.print(to_write);
-}
-
 void change_lang()
 {
+  /*
+   * Change language between Hebrew and English
+   * Change by changing the pointer to the current language, and by changing the
+   * system language with Ctrl+Alt
+   */
   if (CURRENT_LANG == &ENG_KEYS[0])
   {
     CURRENT_LANG = &HEB_KEYS[0];
@@ -225,8 +258,8 @@ void calculate_letter()
     if (CURRENT_CHAR.equals(CURRENT_LANG[i].symbols))
     {
       write_letter(CURRENT_LANG[i].key);
+      LAST_CHAR = CURRENT_LANG[i].key;
       return;
     }
   }
-  Serial.print(CURRENT_CHAR);
 }
