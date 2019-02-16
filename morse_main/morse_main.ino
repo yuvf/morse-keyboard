@@ -1,17 +1,25 @@
+#include <HashMap.h>
 #include <Bounce2.h>
+
 
 const int UNIT = 100;
 
 enum separatorType
 {
-  space=UNIT*7,
-  dot=UNIT*1,
-  line=UNIT*3,
-  part_letter=UNIT*1,
-  letter=UNIT*3,
-  pause=UNIT*12,
-  error=0,
+  space = UNIT * 7 ,
+  dot = UNIT * 1,
+  line = UNIT * 3,
+  part_letter = UNIT * 1,
+  letter = UNIT * 3,
+  pause = UNIT * 12,
+  error = 0,
 };
+
+typedef struct
+{
+  String symbols;
+  char key;
+} Key;
 
 // pins
 const int button_pin = 11;     // the number of the morse key input
@@ -28,13 +36,20 @@ bool IS_DOWN = false; // A bool to check if the key is down, used to check if th
 
 Bounce morse_key = Bounce(button_pin, 10); // The object of the morse key. Fixes bounce issues of metal first contact
 
+// Create an array of keys mapped to symbols
+Key KEYS[] = {{".-", 'a'}, {"-...", 'b'}, {"-.-.", 'c'}, {"-..", 'd'}, {".", 'e'}, {"..-.", 'f'}, {"--.", 'g'}, {"....", 'h'}, {"..", 'i'},
+              {".---", 'j'}, {"-.-", 'k'}, {".-..", 'l'}, {"--", 'm'}, {"-.", 'n'}, {"---", 'o'}, {".--.", 'p'}, {"--.-", 'q'}, {".-.", 'r'},
+              {"...", 's'}, {"-", 't'}, {"..-", 'u'}, {"...-", 'v'}, {".--", 'w'}, {"-..-", 'x'}, {"-.--", 'y'}, {"--..", 'z'}, {".----", '1'},
+              {"..---", '2'}, {"...--", '3'}, {"....-", '4'}, {".....", '5'}, {"-....", '6'}, {"--...", '7'}, {"---..", '8'}, {"----.", '9'},
+              {"-----", '0'}, {"......", 10}, {".......", 8}};
+
 
 void setup() {
   // initialize the LED pin as an output:
   pinMode(led_pin, OUTPUT);
   // initialize the pushbutton pin as an input:
   pinMode(button_pin, INPUT);
-  
+
   Serial.begin(9600);
   Serial.println("Starting...");
 
@@ -69,10 +84,10 @@ void key_up()
   IS_DOWN = false;
   //Serial.print("Down time: ");
   //Serial.println(DOWN_TIME);
-  
+
   // turn LED off:
   digitalWrite(led_pin, LOW);
-  
+
   add_input(DOWN_TIME);
 }
 
@@ -95,23 +110,23 @@ void key_down()
 {
   DOWN_START_TIME = millis();
   IS_DOWN = true;
-  
+
   //Serial.print("Up time: ");
   //Serial.println(UP_TIME);
 
   // turn LED on:
   digitalWrite(led_pin, HIGH);
 
-  
+
 }
 
 void update()
 {
   /* This function writes the correct chars if the morse key is "up" long enough
-   * The morse key can be is "up" state for a long time, like when the user finishes to type.
-   * That's why we should call a different function to check if something needs to be written,
-   * and to not wait of the user to change the state to "down".
-   */
+     The morse key can be is "up" state for a long time, like when the user finishes to type.
+     That's why we should call a different function to check if something needs to be written,
+     and to not wait of the user to change the state to "down".
+  */
   if (!IS_DOWN)
   {
     UP_TIME = millis() - UP_START_TIME;
@@ -127,7 +142,7 @@ void calculate_separator(unsigned long up_time)
     {
       calculate_letter();
       //Serial.print(" CHAR ");
-      
+
       CURRENT_CHAR = "";
       WORD_END = false;
     }
@@ -136,7 +151,7 @@ void calculate_separator(unsigned long up_time)
   {
     write_letter(' ');
     //Serial.print(" SPACE  ");
-    
+
     WORD_END = true;
   }
 }
@@ -148,18 +163,13 @@ void write_letter(char to_write)
 
 void calculate_letter()
 {
-  char to_write = 0;
-  if (CURRENT_CHAR.equals("..."))
+  for (unsigned int i=0; i<(sizeof(KEYS)/sizeof(Key)); i++)
   {
-    to_write = 's';
+    if (CURRENT_CHAR.equals(KEYS[i].symbols))
+    {
+      write_letter(KEYS[i].key);
+      return;
+    }
   }
-  else if (CURRENT_CHAR.equals("---"))
-  {
-    to_write = 'o';
-  }
-  else
-  {
-    Serial.print(CURRENT_CHAR);
-  }
-  write_letter(to_write);
+  Serial.print(CURRENT_CHAR);
 }
