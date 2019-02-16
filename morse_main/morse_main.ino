@@ -1,5 +1,6 @@
 #include <HashMap.h>
 #include <Bounce2.h>
+#include <Keyboard.h>
 
 
 const int UNIT = 100;
@@ -55,6 +56,9 @@ void setup() {
 
   // Set the start of the up time to the beginning of the run
   UP_START_TIME = millis();
+
+  // Initialize the keyboard
+  Keyboard.begin();
 }
 
 void loop() {
@@ -150,7 +154,6 @@ void calculate_separator(unsigned long up_time)
   else if (!WORD_END && up_time >= space)
   {
     write_letter(' ');
-    //Serial.print(" SPACE  ");
 
     WORD_END = true;
   }
@@ -158,7 +161,7 @@ void calculate_separator(unsigned long up_time)
 
 void write_letter(char to_write)
 {
-  Serial.print(to_write);
+  Keyboard.print(to_write);
 }
 
 void calculate_letter()
