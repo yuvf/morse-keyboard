@@ -22,9 +22,9 @@ enum separatorType
 {
   space = UNIT * 7 ,
   dot = UNIT * 1,
-  line = UNIT * 3,
+  line = UNIT * 2,
   part_letter = UNIT * 1,
-  letter = UNIT * 3,
+  letter = UNIT * 4,
   pause = UNIT * 12,
   error = 0,
 };
@@ -44,7 +44,7 @@ typedef struct
 } FinalKey;
 
 // pins
-const int button_pin = 11;     // the number of the morse key input
+const int button_pin = 10;     // the number of the morse key input
 const int led_pin =  13;      // the number of the LED pin
 
 // global variables
