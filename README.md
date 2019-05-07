@@ -17,3 +17,6 @@ You'll need an Arduino with ATmega32U4 processor and a physical Morse key. I've 
 "......" - Enter
 "......." - Backspace
 "........" - Change language
+
+#### Finished Project Example
+![20190507_232554](https://user-images.githubusercontent.com/47543719/57333763-69d87480-7126-11e9-96fd-18dda82cc4cf.jpg)
