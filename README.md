@@ -12,7 +12,8 @@ Timings between characters and words are currently hardcoded in ms. This isn't h
 #### What do I need to replicate this?
 
 You'll need an Arduino with ATmega32U4 processor and a physical Morse key. I've configured my Arduino so the output from the Morse key is connected to Pin 10.
-(Optional: A case to enclose the arduino and the wiring nicely. A 3D model could be found in the repository.)
+(Optional: A case to enclose the arduino and the wiring nicely. A 3D model could be found in the repository.
+A buzzer to hear what you type - The buzzer will beep while you type like a telegram machine. The buzzer is configured to Pin 5.)
 A scheme of the wiring is also available in the file "Basic Connection.fzz" and could be viewed with the program "Fritzing".
 
 #### Added sequences
