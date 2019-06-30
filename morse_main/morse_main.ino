@@ -20,7 +20,7 @@ const unsigned int UNIT = 70;
 
 enum separatorType
 {
-  space = UNIT * 7 ,
+  space = UNIT * 15 ,
   dot = UNIT * 1,
   line = UNIT * 2,
   part_letter = UNIT * 1,
@@ -44,8 +44,9 @@ typedef struct
 } FinalKey;
 
 // pins
-const int button_pin = 10;     // the number of the morse key input
-const int led_pin =  13;      // the number of the LED pin
+const unsigned int AUDIO_PIN = 5; // The number of the buzzer output
+const int button_pin = 10;        // The number of the morse key input
+const int led_pin =  13;          // The number of the LED pin
 
 // global variables
 unsigned long DOWN_START_TIME = 0; // saves the start time when the key is down
@@ -113,11 +114,13 @@ void loop() {
     if (morse_key.risingEdge())
     {
       // morse key is now down. Call key down function
+      tone(AUDIO_PIN, 600); // Play beep sound
       key_down();
     }
     else if (morse_key.fallingEdge())
     {
       // morse key is now up. Call key up function
+      noTone(AUDIO_PIN); // Stop beep sound
       key_up();
     }
   }
